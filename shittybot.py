@@ -6,20 +6,26 @@ def check_volume_spike(symbol):
         "interval": "1",
         "limit": 2,
     }
+
+    print(f"[INFO] Checking {symbol}...")
+    print(f"[INFO] Request URL: {url}")
+    print(f"[INFO] Request Params: {params}")
+
     try:
-        res = requests.get(url, params=params, timeout=5)
-        print(f"[DEBUG] Status: {res.status_code}")
-        print(f"[DEBUG] Text: {res.text[:200]}")  # Print first 200 chars for preview
+        res = requests.get(url, params=params, timeout=10)
+        print(f"[DEBUG] Response Status: {res.status_code}")
+        print(f"[DEBUG] Response Headers: {res.headers}")
+        print(f"[DEBUG] Response Text Preview: {res.text[:300]}")
 
         data = res.json()
 
         if data.get("retCode") != 0:
-            print(f"Bybit API error for {symbol}: {data.get('retMsg')}")
+            print(f"[ERROR] Bybit API error for {symbol}: {data.get('retMsg')}")
             return None
 
         candles = data["result"]["list"]
         if len(candles) < 2:
-            print(f"Not enough data for {symbol}")
+            print(f"[WARN] Not enough data for {symbol}")
             return None
 
         vol_prev = float(candles[-2][5])
@@ -28,5 +34,5 @@ def check_volume_spike(symbol):
         if vol_prev > 0 and vol_now > vol_prev * THRESHOLD:
             return f"📈 Volume Spike (Bybit): {symbol}\nPrev: {vol_prev:.2f}, Now: {vol_now:.2f}"
     except Exception as e:
-        print(f"[!] Exception checking {symbol}: {e}")
+        print(f"[EXCEPTION] {symbol} request failed: {e}")
     return None
