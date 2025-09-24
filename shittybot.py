@@ -1,9 +1,10 @@
 import requests
 
+# Config
 BOT_TOKEN = "YOUR_BOT_TOKEN"
 CHAT_ID = "YOUR_CHAT_ID"
-SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT"]
-THRESHOLD = 1.5  # 50% volume spike
+SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+THRESHOLD = 1.5  # 50% spike
 
 def send_telegram_alert(message):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -14,29 +15,35 @@ def send_telegram_alert(message):
         print(f"Telegram error: {e}")
 
 def check_volume_spike(symbol):
-    url = "https://fapi.binance.com/fapi/v1/klines"
-    params = {"symbol": symbol, "interval": "1m", "limit": 2}
+    url = "https://api.bybit.com/v5/market/kline"
+    params = {
+        "category": "linear",
+        "symbol": symbol,
+        "interval": "1",
+        "limit": 2,
+    }
     try:
         res = requests.get(url, params=params, timeout=5)
         data = res.json()
-
-        if isinstance(data, dict) and "code" in data:
-            print(f"Binance API error for {symbol}: {data['msg']}")
+        if data.get("retCode") != 0:
+            print(f"Bybit API error for {symbol}: {data.get('retMsg')}")
             return None
 
-        if len(data) < 2:
+        candles = data["result"]["list"]
+        if len(candles) < 2:
             print(f"Not enough data for {symbol}")
             return None
 
-        vol_prev = float(data[-2][5])
-        vol_now = float(data[-1][5])
+        vol_prev = float(candles[-2][5])
+        vol_now = float(candles[-1][5])
 
         if vol_prev > 0 and vol_now > vol_prev * THRESHOLD:
-            return f"📈 Volume Spike (Futures): {symbol}\nPrev: {vol_prev:.2f}, Now: {vol_now:.2f}"
+            return f"📈 Volume Spike (Bybit): {symbol}\nPrev: {vol_prev:.2f}, Now: {vol_now:.2f}"
     except Exception as e:
         print(f"[!] Exception checking {symbol}: {e}")
     return None
 
+# Run check
 for symbol in SYMBOLS:
     alert = check_volume_spike(symbol)
     if alert:
