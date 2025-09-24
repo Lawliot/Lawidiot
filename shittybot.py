@@ -1,19 +1,3 @@
-import requests
-
-# Config
-BOT_TOKEN = "YOUR_BOT_TOKEN"
-CHAT_ID = "YOUR_CHAT_ID"
-SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
-THRESHOLD = 1.5  # 50% spike
-
-def send_telegram_alert(message):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message}
-    try:
-        requests.post(url, data=payload)
-    except Exception as e:
-        print(f"Telegram error: {e}")
-
 def check_volume_spike(symbol):
     url = "https://api.bybit.com/v5/market/kline"
     params = {
@@ -24,7 +8,11 @@ def check_volume_spike(symbol):
     }
     try:
         res = requests.get(url, params=params, timeout=5)
+        print(f"[DEBUG] Status: {res.status_code}")
+        print(f"[DEBUG] Text: {res.text[:200]}")  # Print first 200 chars for preview
+
         data = res.json()
+
         if data.get("retCode") != 0:
             print(f"Bybit API error for {symbol}: {data.get('retMsg')}")
             return None
@@ -42,10 +30,3 @@ def check_volume_spike(symbol):
     except Exception as e:
         print(f"[!] Exception checking {symbol}: {e}")
     return None
-
-# Run check
-for symbol in SYMBOLS:
-    alert = check_volume_spike(symbol)
-    if alert:
-        print(alert)
-        send_telegram_alert(alert)
